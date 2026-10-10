@@ -136,7 +136,7 @@ etwa 6–7 Wochen bei rund 950 Einwohnern ein. Mit `ZEITRAFFER` läuft alles gle
 Für Bildschirmfotos kann die Beleuchtung im Browser fest eingestellt werden:
 `http://<pi>:8080/?tageszeit=12` (und `&wetter=regen|schnee|nebel|klar` für das Wetterbild).
 
-## Täglicher Upload auf GitHub (wie bei der RTS-Simulation)
+## Täglicher Upload auf GitHub
 
 Die Simulation schreibt jeden Tag um `EXPORT_ZEIT` die Ergebnisse nach `./data/export/`
 und liefert sie auch über HTTP aus (`/api/export` erzeugt einen frischen Stand,
