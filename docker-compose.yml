@@ -1,0 +1,52 @@
+# Stadtsimulation – Start:  docker compose up -d --build
+# Danach im Browser öffnen: http://<IP-des-Raspberry-Pi>:8080
+services:
+  stadt:
+    build: .
+    image: citysimulation:latest
+    container_name: citysimulation
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data            # Spielstand und tägliche Export-Dateien
+    # Leistungsgrenze: der Raspberry Pi 4 hat 4 Kerne → 30 % = 1,2 Kerne.
+    # Für 50 % z. B. "2.0" eintragen und CPU_LIMIT_PROZENT unten anpassen.
+    cpus: "1.2"
+    mem_limit: 512m
+    environment:
+      TZ: "Europe/Berlin"
+
+      # --- Eigener Ort für das echte Wetter (Open-Meteo, kein API-Schlüssel nötig)
+      ORT: "Berlin"
+      # Alternativ genaue Koordinaten (haben Vorrang vor ORT):
+      # BREITENGRAD: "52.52"
+      # LAENGENGRAD: "13.41"
+
+      # --- Stadt
+      STADT_NAME: "Neustadt"
+      STADT_BLOECKE: "10"           # Kartengröße in Blöcken je Seite (6–16)
+      START_EINWOHNER: "8"
+
+      # --- Leistung (Anteil der gesamten CPU des Pi; bestimmt auch die maximale Stadtgröße)
+      CPU_LIMIT_PROZENT: "30"
+      CLIENT_LIMIT_PROZENT: "30"    # Budget für die Darstellung im Browser
+      CLIENT_MAX_FPS: "30"
+      MAX_EINWOHNER: "5000"
+
+      # --- Zeit (alles in echter Zeit; ZEITRAFFER beschleunigt die ganze Simulation)
+      TAG_NACHT_WECHSEL_STUNDEN: "3"  # 3 h Tag, 3 h Nacht
+      EINWOHNER_PRO_STUNDE: "1"
+      LEBENSDAUER_MIN_TAGE: "30"
+      LEBENSDAUER_MAX_TAGE: "50"
+      JAHR_TAGE: "7"
+      HISTORIE_TAGE: "300"
+      ZEITRAFFER: "1"
+
+      # --- Verkehr
+      ZU_FUSS_BLOECKE: "4"          # bis zu 4 Häuserblocks gehen die Einwohner zu Fuß
+      TRAM_SCHWELLE: "30"           # Autopendler je Tag, ab denen eine Straßenbahn gebaut wird
+      MAX_TRAM_LINIEN: "6"
+
+      # --- Täglicher Export für die GitHub-Seite (lokale Uhrzeit, siehe TZ)
+      EXPORT_ZEIT: "00:05"

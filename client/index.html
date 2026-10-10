@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stadtsimulation</title>
+  <meta name="description" content="Live-Stadtsimulation mit Kenney-Modellen, läuft auf einem Raspberry Pi 4.">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/build/three.module.min.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="szene" aria-label="3D-Ansicht der Stadt"></canvas>
+
+  <header id="hud">
+    <div class="gruppe stadt">
+      <div id="stadtname" class="stadtname">Stadt</div>
+      <div class="zeit"><span id="tagphase" aria-hidden="true">☀</span> <span id="uhr">--:--</span> · Tag <span id="tag">–</span> · Jahr <span id="jahr">–</span> (<span id="jahreszeit">–</span>)</div>
+      <div id="wetter" class="wetter">Wetter wird geladen …</div>
+    </div>
+
+    <div class="gruppe bewohner" aria-label="Einwohner">
+      <div class="kachel gross">
+        <span class="label">Einwohner</span>
+        <span id="einwohner" class="wert">–</span>
+        <span id="zuzug" class="sub"></span>
+      </div>
+      <div class="kachel">
+        <span class="label">Bei der Arbeit</span>
+        <span id="arbeit" class="wert">–</span>
+        <span id="arbeitSub" class="sub"></span>
+      </div>
+      <div class="kachel">
+        <span class="label">Zuhause</span>
+        <span id="zuhause" class="wert">–</span>
+      </div>
+      <div class="kachel">
+        <span class="label">Unterwegs</span>
+        <span id="unterwegs" class="wert">–</span>
+      </div>
+    </div>
+
+    <div class="gruppe umwelt" aria-label="Umwelt">
+      <div class="kachel">
+        <span class="label">Luftqualität</span>
+        <span id="luft" class="status">–</span>
+      </div>
+      <div class="kachel">
+        <span class="label">Emission</span>
+        <span id="emission" class="wert">–</span>
+        <span id="emissionHeute" class="sub"></span>
+      </div>
+    </div>
+
+    <div class="gruppe gesellschaft" aria-label="Gesellschaft">
+      <div class="kachel">
+        <span class="label">Altersstruktur (Tage)</span>
+        <div id="alter" class="mini"></div>
+      </div>
+      <div class="kachel">
+        <span class="label">Zufriedenheit</span>
+        <span id="zufriedenheit" class="wert">–</span>
+        <div class="meter"><span id="zufriedenheitMeter"></span></div>
+        <span id="zufriedenheitSub" class="sub"></span>
+      </div>
+      <div class="kachel breit">
+        <span class="label">Bebauungsdichte</span>
+        <span id="dichte" class="wert">–</span>
+        <span id="gebaeude" class="sub"></span>
+        <span id="gebaeudeArten" class="sub"></span>
+      </div>
+    </div>
+
+    <button id="historieBtn" class="gruppe historie" aria-expanded="false" aria-controls="historiePanel" title="Entwicklung der letzten Tage anzeigen">
+      <span class="label">Verlauf</span>
+      <span id="spark" class="sparkbox"></span>
+      <span id="historieSub" class="sub"></span>
+    </button>
+  </header>
+
+  <section id="historiePanel" class="panel" hidden aria-labelledby="historieTitel">
+    <div class="panelkopf">
+      <h2 id="historieTitel">Entwicklung</h2>
+      <button id="historieClose" class="schliessen" aria-label="Schließen">✕</button>
+    </div>
+    <div class="multiples">
+      <figure><figcaption>Einwohner</figcaption><div id="chartEinwohner"></div></figure>
+      <figure><figcaption>Zufriedenheit (%)</figcaption><div id="chartGlueck"></div></figure>
+      <figure><figcaption>Luftqualität (0–100)</figcaption><div id="chartLuft"></div></figure>
+      <figure><figcaption id="emissionTitel">Emission</figcaption><div id="chartEmission"></div></figure>
+    </div>
+    <div class="verkehr">
+      <h3>Verkehrsmittel auf dem Arbeitsweg</h3>
+      <div id="modal"></div>
+      <div id="modalLegende" class="legende"></div>
+      <p id="verkehrSub" class="sub"></p>
+    </div>
+    <button id="tabelleBtn" class="knopf leise">Als Tabelle zeigen</button>
+    <div id="historieTabelle" class="tabelle" hidden></div>
+  </section>
+
+  <aside id="info" class="panel" hidden aria-live="polite">
+    <button id="infoClose" class="schliessen" aria-label="Schließen">✕</button>
+    <div id="infoInhalt"></div>
+  </aside>
+
+  <div id="news" aria-live="polite"></div>
+
+  <div id="steuerung">
+    <button id="btnOverview" class="knopf" title="Ganze Stadt aus der Vogelperspektive">Übersicht</button>
+    <label class="knopf auswahl">Qualität
+      <select id="quality">
+        <option value="auto" selected>Automatisch</option>
+        <option value="3">Hoch</option>
+        <option value="2">Mittel</option>
+        <option value="1">Niedrig</option>
+        <option value="0">Minimal</option>
+      </select>
+    </label>
+    <details class="hilfe">
+      <summary class="knopf">?</summary>
+      <div class="hilfetext">
+        <b>Steuerung</b><br>
+        Mausrad: Zoom zur Mausposition<br>
+        Linke Maustaste ziehen: verschieben<br>
+        Rechte Maustaste / Shift + ziehen: drehen<br>
+        Klick auf Haus, Fabrik, Person, Auto oder Bahn: Infos<br>
+        Tasten: Pfeile/WASD, Q/E drehen, +/− Zoom, Esc schließen
+      </div>
+    </details>
+  </div>
+
+  <div id="perf" title="Darstellung im Browser / Simulation auf dem Server">
+    <span id="perfFps">– fps</span> · Browser-Last <span id="perfLast">–</span> · Stufe <span id="perfStufe">–</span> · Server-CPU <span id="serverCpu">–</span>
+  </div>
+
+  <div id="verbindung" hidden>Verbindung zur Simulation unterbrochen – verbinde neu …</div>
+
+  <div id="loading">
+    <div class="ladebox">
+      <div class="ladetitel">Stadtsimulation</div>
+      <div class="ladeleiste"><span id="ladeBalken"></span></div>
+      <div id="ladeText">Lade …</div>
+    </div>
+  </div>
+
+  <noscript>Für die Stadtsimulation wird JavaScript benötigt.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "citysimulation",
+  "version": "1.0.0",
+  "description": "Stadtsimulation mit Kenney-Assets für den Raspberry Pi 4 (Docker, Browser-Ansicht)",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prepare-assets": "node scripts/prepare-assets.mjs",
+    "start": "node server/index.js",
+    "dev": "ZEITRAFFER=60 node server/index.js"
+  },
+  "dependencies": {
+    "three": "0.184.0"
+  }
+}
